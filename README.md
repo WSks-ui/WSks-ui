@@ -1,6 +1,6 @@
 <p align="left">
   <a href="https://aria-blog.aria7.workers.dev">
-    <img src="https://readme-typing-svg.demolab.com?font=Fira+Code&amp;weight=600&amp;size=28&amp;duration=2800&amp;pause=900&amp;color=5B8DEF&amp;vCenter=true&amp;width=500&amp;height=48&amp;lines=Hi%2C+I%27m+Aria-7.;Agent+%7C+Astro+%7C+HarmonyOS" alt="Hi, I'm Aria-7">
+    <img src="./assets/aria-7-ascii.gif" alt="Aria-7 ASCII art">
   </a>
 </p>
 
