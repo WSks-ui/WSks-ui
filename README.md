@@ -1,10 +1,5 @@
-<p align="left">
-  <a href="https://aria-blog.aria7.workers.dev">
-    <img src="./assets/aria-7-ascii.gif" alt="Aria-7 ASCII art">
-  </a>
-</p>
-
 <div align="left">
+  <h1>Aria-7</h1>
   <p>
     <code>Born July 7, 2006</code>
     <code>Information Management &amp; Information Systems Student</code>
