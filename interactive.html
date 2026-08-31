@@ -3,12 +3,17 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#ffffff">
-  <title>Aria-7 ASCII Field</title>
+  <meta name="theme-color" content="#070a0f">
+  <title>Aria-7 / Interactive Character Field</title>
   <style>
     :root {
-      color-scheme: light;
-      background: #ffffff;
+      color-scheme: dark;
+      background: #070a0f;
+      font-family: "SFMono-Regular", "Cascadia Code", "Roboto Mono", Consolas, monospace;
+    }
+
+    * {
+      box-sizing: border-box;
     }
 
     html,
@@ -17,48 +22,327 @@
       height: 100%;
       margin: 0;
       overflow: hidden;
-      background: #ffffff;
+      background: #070a0f;
     }
 
     body {
-      font-family: "SFMono-Regular", "Cascadia Code", "Roboto Mono", Consolas, monospace;
+      color: #d8e5ec;
+    }
+
+    .app {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: #070a0f;
     }
 
     canvas {
+      position: absolute;
+      inset: 0;
       display: block;
       width: 100%;
       height: 100%;
-      background: #ffffff;
       cursor: crosshair;
       touch-action: none;
+    }
+
+    .frame {
+      position: absolute;
+      inset: clamp(18px, 3.8vw, 58px);
+      border: 1px solid rgba(142, 185, 204, 0.2);
+      pointer-events: none;
+      z-index: 1;
+    }
+
+    .frame::before,
+    .frame::after {
+      position: absolute;
+      width: 9px;
+      height: 9px;
+      content: "";
+      border-color: rgba(231, 244, 247, 0.78);
+      border-style: solid;
+    }
+
+    .frame::before {
+      top: -1px;
+      left: -1px;
+      border-width: 1px 0 0 1px;
+    }
+
+    .frame::after {
+      right: -1px;
+      bottom: -1px;
+      border-width: 0 1px 1px 0;
+    }
+
+    .hud {
+      position: absolute;
+      right: clamp(34px, 6vw, 94px);
+      left: clamp(34px, 6vw, 94px);
+      display: flex;
+      justify-content: space-between;
+      pointer-events: none;
+      z-index: 3;
+    }
+
+    .hud-top {
+      top: clamp(34px, 6.5vh, 72px);
+      align-items: flex-start;
+    }
+
+    .hud-bottom {
+      bottom: clamp(28px, 5.2vh, 64px);
+      align-items: flex-end;
+    }
+
+    .brand {
+      display: grid;
+      gap: 8px;
+      padding: 8px 10px;
+      background: rgba(7, 10, 15, 0.72);
+      border: 1px solid rgba(142, 185, 204, 0.16);
+    }
+
+    .eyebrow,
+    .label {
+      color: #7090a2;
+      font-size: 10px;
+      font-weight: 500;
+      line-height: 1.2;
+      text-transform: uppercase;
+    }
+
+    h1 {
+      margin: 0;
+      color: #f1f8fa;
+      font-size: 44px;
+      font-weight: 600;
+      line-height: 0.95;
+      letter-spacing: 0;
+    }
+
+    .center-label {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      z-index: 2;
+      padding: 0.1em 0.18em 0.14em;
+      color: rgba(241, 248, 250, 0.88);
+      font-size: clamp(48px, 10vw, 136px);
+      font-weight: 600;
+      line-height: 1;
+      letter-spacing: 0.04em;
+      white-space: nowrap;
+      background: rgba(7, 10, 15, 0.62);
+      border-top: 1px solid rgba(143, 216, 237, 0.32);
+      border-bottom: 1px solid rgba(143, 216, 237, 0.32);
+      text-shadow: 0 0 18px rgba(120, 202, 216, 0.45);
+      transform: translate(-50%, -50%);
+      pointer-events: none;
+      user-select: none;
+      animation: label-pulse 3.2s ease-in-out infinite alternate;
+    }
+
+    @keyframes label-pulse {
+      from {
+        opacity: 0.76;
+        transform: translate(-50%, -50%) scale(0.985);
+      }
+      to {
+        opacity: 1;
+        transform: translate(-50%, -50%) scale(1);
+      }
+    }
+
+    .identity,
+    .readout,
+    .footer-group {
+      display: grid;
+      gap: 7px;
+      padding: 8px 10px;
+      background: rgba(7, 10, 15, 0.72);
+      border: 1px solid rgba(142, 185, 204, 0.16);
+    }
+
+    .identity {
+      min-width: 180px;
+      text-align: right;
+    }
+
+    .value {
+      color: #bed8e1;
+      font-size: 11px;
+      line-height: 1.35;
+    }
+
+    .signal {
+      display: inline-flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 8px;
+      color: #f28778;
+      font-size: 10px;
+      text-transform: uppercase;
+    }
+
+    .signal-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: #f28778;
+      box-shadow: 0 0 12px rgba(242, 135, 120, 0.75);
+    }
+
+    .readout {
+      max-width: min(48vw, 560px);
+    }
+
+    .readout .value {
+      color: rgba(190, 216, 225, 0.78);
+    }
+
+    .footer-links {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 14px;
+      justify-content: flex-end;
+    }
+
+    a {
+      color: #8fd8ed;
+      font-size: 11px;
+      text-decoration: none;
+      border-bottom: 1px solid rgba(143, 216, 237, 0.35);
+      pointer-events: auto;
+    }
+
+    a:hover,
+    a:focus-visible {
+      color: #f1f8fa;
+      border-color: #f1f8fa;
+      outline: none;
+    }
+
+    @media (max-width: 640px) {
+      .frame {
+        inset: 14px;
+      }
+
+      .hud {
+        right: 26px;
+        left: 26px;
+      }
+
+      .hud-top {
+        top: 28px;
+      }
+
+      .hud-bottom {
+        bottom: 24px;
+        display: grid;
+        gap: 10px;
+        justify-content: start;
+      }
+
+      .identity {
+        min-width: 0;
+      }
+
+      .identity .value {
+        display: none;
+      }
+
+      .readout {
+        max-width: 62vw;
+      }
+
+      .readout .value {
+        font-size: 9px;
+      }
+
+      .footer-links {
+        justify-content: flex-start;
+        gap: 10px;
+      }
+
+      h1 {
+        font-size: 30px;
+      }
+
+      .center-label {
+        max-width: calc(100vw - 52px);
+        font-size: clamp(42px, 15vw, 64px);
+      }
+    }
+
+    @media (min-width: 641px) and (max-width: 900px) {
+      .center-label {
+        font-size: 104px;
+      }
     }
 
     @media (prefers-reduced-motion: reduce) {
       canvas {
         cursor: default;
       }
+
+      .center-label {
+        animation: none;
+      }
     }
   </style>
 </head>
 <body>
-  <canvas id="ascii-field" aria-label="Interactive ASCII character field"></canvas>
+  <main class="app">
+    <canvas id="ascii-field" aria-label="Interactive ASCII character field featuring Aria-7"></canvas>
+    <div class="center-label" aria-hidden="true">Aria-7</div>
+    <div class="frame" aria-hidden="true"></div>
+    <header class="hud hud-top">
+      <div class="brand">
+        <span class="eyebrow">WSks-ui / profile field</span>
+        <h1>Aria-7</h1>
+      </div>
+      <div class="identity">
+        <span class="signal"><span class="signal-dot"></span>live field</span>
+        <span class="value">07.07.2006 / AR7</span>
+      </div>
+    </header>
+    <div class="hud hud-bottom">
+      <div class="readout">
+        <span class="label">Focus</span>
+        <span class="value">Agents · Astro · HarmonyOS · Embedded · Python</span>
+      </div>
+      <div class="footer-group">
+        <span class="label">Links</span>
+        <nav class="footer-links" aria-label="Profile links">
+          <a href="./">README</a>
+          <a href="https://aria-blog.aria7.workers.dev/">BLOG</a>
+          <a href="mailto:aria_7@yeah.net">EMAIL</a>
+        </nav>
+      </div>
+    </div>
+  </main>
   <script>
     (() => {
       "use strict";
 
       const canvas = document.getElementById("ascii-field");
       const context = canvas.getContext("2d", { alpha: false });
+      const maskCanvas = document.createElement("canvas");
+      const maskContext = maskCanvas.getContext("2d", { willReadFrequently: true });
       const motionQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
+      const characters = [".", ":", "-", "+", "/", "\\", "(", ")", "*", "^", "=", "#", "@"];
       const palette = [
-        "#b8e2ff",
-        "#93d1ff",
-        "#62baff",
-        "#299cff",
-        "#087ce8",
-        "#0758b2",
-        "#082f58"
+        "#142638",
+        "#1c3a51",
+        "#245672",
+        "#2e7692",
+        "#3c9eb8",
+        "#78cad8",
+        "#d6f1f1"
       ];
-      const characters = ["-", "+", "/", "(", ")", "*", "▲", "K", "#", "⬢"];
       const pointer = {
         x: 0.5,
         y: 0.5,
@@ -66,7 +350,6 @@
         targetY: 0.5,
         strength: 0,
         targetStrength: 0,
-        active: false,
         lastX: 0.5,
         lastY: 0.5,
         velocity: 0
@@ -83,7 +366,8 @@
         time: 0,
         lastFrame: 0,
         running: false,
-        reducedMotion: motionQuery.matches
+        reducedMotion: motionQuery.matches,
+        wordMask: new Uint8Array(0)
       };
 
       function clamp(value, minimum, maximum) {
@@ -100,6 +384,22 @@
         return value - Math.floor(value);
       }
 
+      function rebuildWordMask() {
+        maskCanvas.width = state.columns;
+        maskCanvas.height = state.rows;
+        maskContext.clearRect(0, 0, state.columns, state.rows);
+        maskContext.fillStyle = "#ffffff";
+        maskContext.textAlign = "center";
+        maskContext.textBaseline = "middle";
+        maskContext.font = `700 ${Math.max(8, Math.floor(state.rows * 0.68))}px Arial, sans-serif`;
+        maskContext.fillText("ARIA-7", state.columns * 0.5, state.rows * 0.53);
+        const image = maskContext.getImageData(0, 0, state.columns, state.rows).data;
+        state.wordMask = new Uint8Array(state.columns * state.rows);
+        for (let index = 0; index < state.wordMask.length; index += 1) {
+          state.wordMask[index] = image[index * 4 + 3] > 90 ? 1 : 0;
+        }
+      }
+
       function resize() {
         const bounds = canvas.getBoundingClientRect();
         state.width = Math.max(1, bounds.width);
@@ -108,14 +408,15 @@
         canvas.width = Math.round(state.width * state.dpr);
         canvas.height = Math.round(state.height * state.dpr);
         context.setTransform(state.dpr, 0, 0, state.dpr, 0, 0);
-        state.fontSize = clamp(state.height / 52, 11, 16);
-        state.cellWidth = state.fontSize * 0.76;
-        state.cellHeight = state.fontSize * 1.32;
+        state.fontSize = clamp(state.height / 48, 10, 17);
+        state.cellWidth = state.fontSize * 0.68;
+        state.cellHeight = state.fontSize * 1.25;
         state.columns = Math.ceil(state.width / state.cellWidth) + 2;
         state.rows = Math.ceil(state.height / state.cellHeight) + 2;
         context.textAlign = "center";
         context.textBaseline = "middle";
         context.font = `${state.fontSize}px "SFMono-Regular", "Cascadia Code", "Roboto Mono", Consolas, monospace`;
+        rebuildWordMask();
         draw(state.reducedMotion ? 0 : state.time);
       }
 
@@ -129,7 +430,6 @@
         pointer.lastX = pointer.targetX;
         pointer.lastY = pointer.targetY;
         pointer.targetStrength = 1;
-        pointer.active = true;
       }
 
       function clearPointer() {
@@ -142,7 +442,7 @@
         const drift = 0.055 * Math.sin(phase * 0.75 + v * 8.3) + 0.032 * Math.sin(phase * 1.2 - v * 19.0);
         const warp = 0.105 * Math.sin(v * 8.2 + phase) + 0.045 * Math.sin(v * 21.0 - phase * 1.6);
         const diagonal = 0.032 * Math.sin(u * 16.0 + v * 13.0 - phase * 1.1);
-        const density = smoothstep(0.025, 0.98, u + warp + drift + diagonal);
+        const density = smoothstep(0.01, 0.98, u + warp + drift + diagonal);
         const swirlX = u - 0.58 - 0.055 * Math.sin(phase);
         const swirlY = centeredY + 0.08 * Math.sin(phase * 0.72);
         const radius = Math.sqrt(Math.pow(swirlX * 1.18, 2) + swirlY * swirlY);
@@ -156,16 +456,15 @@
         return clamp(density * 0.92 + rings + stream + pockets + noise, 0, 1);
       }
 
-      function characterFor(value, column, row, time) {
+      function characterFor(value, column, row, time, inWord) {
+        if (inWord) {
+          const variation = hash(column * 2.13 + Math.floor(time * 0.8), row * 1.17);
+          return variation > 0.7 ? "@" : variation > 0.38 ? "#" : "*";
+        }
         const variation = hash(column * 1.37 + Math.floor(time * 0.35), row * 1.91);
-        if (value < 0.18) return variation > 0.48 ? "-" : "+";
-        if (value < 0.29) return variation > 0.5 ? "/" : "+";
-        if (value < 0.42) return variation > 0.53 ? "(" : ")";
-        if (value < 0.56) return variation > 0.5 ? "*" : "(";
-        if (value < 0.68) return variation > 0.45 ? "▲" : "*";
-        if (value < 0.79) return variation > 0.44 ? "K" : "▲";
-        if (value < 0.9) return variation > 0.35 ? "#" : "K";
-        return variation > 0.18 ? "⬢" : "#";
+        const index = clamp(Math.floor(value * characters.length), 0, characters.length - 1);
+        if (variation > 0.74) return characters[index];
+        return characters[clamp(index - 1, 0, characters.length - 1)];
       }
 
       function draw(time) {
@@ -175,17 +474,17 @@
         pointer.y += (pointer.targetY - pointer.y) * pointerEase;
         pointer.strength += (pointer.targetStrength - pointer.strength) * (state.reducedMotion ? 1 : 0.1);
         pointer.velocity *= state.reducedMotion ? 0 : 0.88;
-        context.fillStyle = "#ffffff";
+        context.fillStyle = "#070a0f";
         context.fillRect(0, 0, state.width, state.height);
         context.font = `${state.fontSize}px "SFMono-Regular", "Cascadia Code", "Roboto Mono", Consolas, monospace`;
-        const radius = Math.min(state.width, state.height) * 0.28;
+        const radius = Math.min(state.width, state.height) * 0.3;
         const baseTime = state.reducedMotion ? 0 : time;
 
         for (let row = 0; row < state.rows; row += 1) {
-          const y = (row - 0.9) * state.cellHeight;
+          const y = (row - 0.2) * state.cellHeight;
           const v = y / state.height;
           for (let column = 0; column < state.columns; column += 1) {
-            const x = (column - 0.1) * state.cellWidth;
+            const x = (column + 0.2) * state.cellWidth;
             const u = x / state.width;
             const dx = x - pointer.x * state.width;
             const dy = y - pointer.y * state.height;
@@ -197,15 +496,25 @@
             const warpY = Math.sin(angle * 2 - baseTime * 0.95) * local * 0.045;
             let value = fieldValue(u + warpX, v + warpY, baseTime);
             value = clamp(value + ripple * 0.12 + local * pointer.velocity * 0.18, 0, 1);
-            const visibility = smoothstep(0.085, 0.2, value);
+            const inWord = state.wordMask[row * state.columns + column] === 1;
+            const topGuard = smoothstep(0.06, 0.2, v);
+            const bottomGuard = 1 - smoothstep(0.78, 0.94, v);
+            const centerGuard = smoothstep(0.1, 0.3, Math.abs(u - 0.5));
+            const zone = 0.2 + 0.8 * Math.min(topGuard, bottomGuard);
+            const centerQuiet = 0.4 + 0.6 * centerGuard;
+            const visibility = smoothstep(0.06, 0.21, value) * zone * centerQuiet;
             const dropout = hash(column + 17, row + 31);
-            if (visibility < 0.03 || dropout > visibility * 1.08) continue;
-            const level = clamp(Math.floor(value * palette.length), 0, palette.length - 1);
-            const character = characterFor(value, column, row, baseTime);
-            const alpha = clamp(0.24 + visibility * 0.76, 0, 1);
-            const jitterX = Math.sin(column * 0.63 + row * 0.21 + baseTime * 0.6) * 0.18;
-            const jitterY = Math.cos(column * 0.31 - row * 0.47 + baseTime * 0.55) * 0.18;
+            if (!inWord && (visibility < 0.03 || dropout > visibility * 0.92)) continue;
+            const wordPulse = inWord ? 0.08 * Math.sin(baseTime * 2.2 + column * 0.3 - row * 0.2) : 0;
+            const level = inWord ? 5 : clamp(Math.floor(value * palette.length), 0, palette.length - 1);
+            const character = characterFor(value, column, row, baseTime, inWord);
+            const alpha = inWord ? clamp(0.52 + wordPulse, 0, 1) : clamp(0.12 + visibility * 0.68, 0, 1);
+            const jitterX = Math.sin(column * 0.63 + row * 0.21 + baseTime * 0.6) * (inWord ? 0.28 : 0.18);
+            const jitterY = Math.cos(column * 0.31 - row * 0.47 + baseTime * 0.55) * (inWord ? 0.28 : 0.18);
             context.fillStyle = palette[level];
+            if (!inWord && level >= 5 && hash(column * 1.7, row * 2.3) > 0.985) {
+              context.fillStyle = "#f28778";
+            }
             context.globalAlpha = alpha;
             context.fillText(character, x + jitterX, y + state.cellHeight * 0.5 + jitterY);
           }
