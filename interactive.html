@@ -1,0 +1,257 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#ffffff">
+  <title>Aria-7 ASCII Field</title>
+  <style>
+    :root {
+      color-scheme: light;
+      background: #ffffff;
+    }
+
+    html,
+    body {
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      overflow: hidden;
+      background: #ffffff;
+    }
+
+    body {
+      font-family: "SFMono-Regular", "Cascadia Code", "Roboto Mono", Consolas, monospace;
+    }
+
+    canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+      background: #ffffff;
+      cursor: crosshair;
+      touch-action: none;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      canvas {
+        cursor: default;
+      }
+    }
+  </style>
+</head>
+<body>
+  <canvas id="ascii-field" aria-label="Interactive ASCII character field"></canvas>
+  <script>
+    (() => {
+      "use strict";
+
+      const canvas = document.getElementById("ascii-field");
+      const context = canvas.getContext("2d", { alpha: false });
+      const motionQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
+      const palette = [
+        "#b8e2ff",
+        "#93d1ff",
+        "#62baff",
+        "#299cff",
+        "#087ce8",
+        "#0758b2",
+        "#082f58"
+      ];
+      const characters = ["-", "+", "/", "(", ")", "*", "▲", "K", "#", "⬢"];
+      const pointer = {
+        x: 0.5,
+        y: 0.5,
+        targetX: 0.5,
+        targetY: 0.5,
+        strength: 0,
+        targetStrength: 0,
+        active: false,
+        lastX: 0.5,
+        lastY: 0.5,
+        velocity: 0
+      };
+      const state = {
+        width: 0,
+        height: 0,
+        dpr: 1,
+        columns: 0,
+        rows: 0,
+        cellWidth: 12,
+        cellHeight: 19,
+        fontSize: 15,
+        time: 0,
+        lastFrame: 0,
+        running: false,
+        reducedMotion: motionQuery.matches
+      };
+
+      function clamp(value, minimum, maximum) {
+        return Math.min(maximum, Math.max(minimum, value));
+      }
+
+      function smoothstep(edge0, edge1, value) {
+        const t = clamp((value - edge0) / (edge1 - edge0), 0, 1);
+        return t * t * (3 - 2 * t);
+      }
+
+      function hash(x, y) {
+        const value = Math.sin(x * 127.1 + y * 311.7) * 43758.5453123;
+        return value - Math.floor(value);
+      }
+
+      function resize() {
+        const bounds = canvas.getBoundingClientRect();
+        state.width = Math.max(1, bounds.width);
+        state.height = Math.max(1, bounds.height);
+        state.dpr = Math.min(window.devicePixelRatio || 1, 2);
+        canvas.width = Math.round(state.width * state.dpr);
+        canvas.height = Math.round(state.height * state.dpr);
+        context.setTransform(state.dpr, 0, 0, state.dpr, 0, 0);
+        state.fontSize = clamp(state.height / 52, 11, 16);
+        state.cellWidth = state.fontSize * 0.76;
+        state.cellHeight = state.fontSize * 1.32;
+        state.columns = Math.ceil(state.width / state.cellWidth) + 2;
+        state.rows = Math.ceil(state.height / state.cellHeight) + 2;
+        context.textAlign = "center";
+        context.textBaseline = "middle";
+        context.font = `${state.fontSize}px "SFMono-Regular", "Cascadia Code", "Roboto Mono", Consolas, monospace`;
+        draw(state.reducedMotion ? 0 : state.time);
+      }
+
+      function pointerPosition(event) {
+        const bounds = canvas.getBoundingClientRect();
+        pointer.targetX = clamp((event.clientX - bounds.left) / bounds.width, 0, 1);
+        pointer.targetY = clamp((event.clientY - bounds.top) / bounds.height, 0, 1);
+        const dx = pointer.targetX - pointer.lastX;
+        const dy = pointer.targetY - pointer.lastY;
+        pointer.velocity = clamp(Math.sqrt(dx * dx + dy * dy) * 7, 0, 1);
+        pointer.lastX = pointer.targetX;
+        pointer.lastY = pointer.targetY;
+        pointer.targetStrength = 1;
+        pointer.active = true;
+      }
+
+      function clearPointer() {
+        pointer.targetStrength = 0;
+      }
+
+      function fieldValue(u, v, time) {
+        const phase = time * 0.9;
+        const centeredY = v - 0.5;
+        const drift = 0.055 * Math.sin(phase * 0.75 + v * 8.3) + 0.032 * Math.sin(phase * 1.2 - v * 19.0);
+        const warp = 0.105 * Math.sin(v * 8.2 + phase) + 0.045 * Math.sin(v * 21.0 - phase * 1.6);
+        const diagonal = 0.032 * Math.sin(u * 16.0 + v * 13.0 - phase * 1.1);
+        const density = smoothstep(0.025, 0.98, u + warp + drift + diagonal);
+        const swirlX = u - 0.58 - 0.055 * Math.sin(phase);
+        const swirlY = centeredY + 0.08 * Math.sin(phase * 0.72);
+        const radius = Math.sqrt(Math.pow(swirlX * 1.18, 2) + swirlY * swirlY);
+        const angle = Math.atan2(swirlY, swirlX);
+        const rings = 0.11 * Math.sin(radius * 40.0 - phase * 1.35 + angle * 2.8);
+        const stream = 0.075 * Math.sin(v * 27.0 - u * 8.0 + phase * 0.9);
+        const upperFlow = Math.exp(-Math.pow((u - 0.63) / 0.24, 2) - Math.pow((v - 0.2) / 0.32, 2));
+        const lowerFlow = Math.exp(-Math.pow((u - 0.54) / 0.28, 2) - Math.pow((v - 0.78) / 0.28, 2));
+        const pockets = 0.09 * upperFlow * Math.sin(v * 30.0 + phase * 1.7) + 0.075 * lowerFlow * Math.cos(v * 34.0 - phase);
+        const noise = (hash(Math.floor(u * 89), Math.floor(v * 61)) - 0.5) * 0.028;
+        return clamp(density * 0.92 + rings + stream + pockets + noise, 0, 1);
+      }
+
+      function characterFor(value, column, row, time) {
+        const variation = hash(column * 1.37 + Math.floor(time * 0.35), row * 1.91);
+        if (value < 0.18) return variation > 0.48 ? "-" : "+";
+        if (value < 0.29) return variation > 0.5 ? "/" : "+";
+        if (value < 0.42) return variation > 0.53 ? "(" : ")";
+        if (value < 0.56) return variation > 0.5 ? "*" : "(";
+        if (value < 0.68) return variation > 0.45 ? "▲" : "*";
+        if (value < 0.79) return variation > 0.44 ? "K" : "▲";
+        if (value < 0.9) return variation > 0.35 ? "#" : "K";
+        return variation > 0.18 ? "⬢" : "#";
+      }
+
+      function draw(time) {
+        if (!context || !state.width || !state.height) return;
+        const pointerEase = state.reducedMotion ? 1 : 0.12;
+        pointer.x += (pointer.targetX - pointer.x) * pointerEase;
+        pointer.y += (pointer.targetY - pointer.y) * pointerEase;
+        pointer.strength += (pointer.targetStrength - pointer.strength) * (state.reducedMotion ? 1 : 0.1);
+        pointer.velocity *= state.reducedMotion ? 0 : 0.88;
+        context.fillStyle = "#ffffff";
+        context.fillRect(0, 0, state.width, state.height);
+        context.font = `${state.fontSize}px "SFMono-Regular", "Cascadia Code", "Roboto Mono", Consolas, monospace`;
+        const radius = Math.min(state.width, state.height) * 0.28;
+        const baseTime = state.reducedMotion ? 0 : time;
+
+        for (let row = 0; row < state.rows; row += 1) {
+          const y = (row - 0.9) * state.cellHeight;
+          const v = y / state.height;
+          for (let column = 0; column < state.columns; column += 1) {
+            const x = (column - 0.1) * state.cellWidth;
+            const u = x / state.width;
+            const dx = x - pointer.x * state.width;
+            const dy = y - pointer.y * state.height;
+            const distance = Math.sqrt(dx * dx + dy * dy);
+            const local = Math.exp(-Math.pow(distance / radius, 2)) * pointer.strength;
+            const angle = Math.atan2(dy, dx);
+            const ripple = Math.sin(distance * 0.075 - baseTime * 4.2 + angle * 2.4) * local;
+            const warpX = Math.cos(angle * 3 + baseTime * 1.2) * local * 0.035;
+            const warpY = Math.sin(angle * 2 - baseTime * 0.95) * local * 0.045;
+            let value = fieldValue(u + warpX, v + warpY, baseTime);
+            value = clamp(value + ripple * 0.12 + local * pointer.velocity * 0.18, 0, 1);
+            const visibility = smoothstep(0.085, 0.2, value);
+            const dropout = hash(column + 17, row + 31);
+            if (visibility < 0.03 || dropout > visibility * 1.08) continue;
+            const level = clamp(Math.floor(value * palette.length), 0, palette.length - 1);
+            const character = characterFor(value, column, row, baseTime);
+            const alpha = clamp(0.24 + visibility * 0.76, 0, 1);
+            const jitterX = Math.sin(column * 0.63 + row * 0.21 + baseTime * 0.6) * 0.18;
+            const jitterY = Math.cos(column * 0.31 - row * 0.47 + baseTime * 0.55) * 0.18;
+            context.fillStyle = palette[level];
+            context.globalAlpha = alpha;
+            context.fillText(character, x + jitterX, y + state.cellHeight * 0.5 + jitterY);
+          }
+        }
+        context.globalAlpha = 1;
+      }
+
+      function frame(timestamp) {
+        if (!state.running) return;
+        const elapsed = Math.min(timestamp - state.lastFrame, 50);
+        state.lastFrame = timestamp;
+        state.time += elapsed * 0.001;
+        draw(state.time);
+        window.requestAnimationFrame(frame);
+      }
+
+      function updateMotionPreference(event) {
+        state.reducedMotion = event.matches;
+        state.running = !state.reducedMotion;
+        if (state.reducedMotion) {
+          draw(0);
+          return;
+        }
+        state.lastFrame = performance.now();
+        window.requestAnimationFrame(frame);
+      }
+
+      canvas.addEventListener("pointermove", pointerPosition, { passive: true });
+      canvas.addEventListener("pointerdown", pointerPosition, { passive: true });
+      canvas.addEventListener("pointerleave", clearPointer, { passive: true });
+      canvas.addEventListener("pointerup", clearPointer, { passive: true });
+      canvas.addEventListener("pointercancel", clearPointer, { passive: true });
+      window.addEventListener("resize", resize, { passive: true });
+      if (motionQuery.addEventListener) {
+        motionQuery.addEventListener("change", updateMotionPreference);
+      } else {
+        motionQuery.addListener(updateMotionPreference);
+      }
+
+      resize();
+      state.running = !state.reducedMotion;
+      if (state.running) {
+        state.lastFrame = performance.now();
+        window.requestAnimationFrame(frame);
+      }
+    })();
+  </script>
+</body>
+</html>
