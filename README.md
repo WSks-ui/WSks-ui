@@ -1,12 +1,8 @@
-<pre align="center">
-  #    ####   #####    #             #####
- # #   #   #    #     # #               #
-#   #  #   #    #    #   #              #
-#####  ####     #    #####    #####    #
-#   #  # #      #    #   #              #
-#   #  #  #     #    #   #              #
-#   #  #   #  #####  #   #             #
-</pre>
+<p align="left">
+  <a href="https://aria-blog.aria7.workers.dev">
+    <img src="https://readme-typing-svg.demolab.com?font=Fira+Code&amp;weight=600&amp;size=28&amp;duration=2800&amp;pause=900&amp;color=5B8DEF&amp;vCenter=true&amp;width=700&amp;height=52&amp;lines=Hi%2C+I%27m+Aria-7.;Agent+%7C+Astro+%7C+HarmonyOS+%7C+Embedded+%7C+Python" alt="Hi, I'm Aria-7">
+  </a>
+</p>
 
 <p>
   <code>Born July 7, 2006</code>
